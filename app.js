@@ -39,54 +39,79 @@ function fetchExoplanetData() {
         });
 }
 
+// Function to fetch exoplanet data from the API
+function fetchExoplanetData2() {
+    fetch('/api/selector?max=100', {
+        method: 'GET',
+        mode: 'cors',  // This allows handling of the response if the server supports it
+        headers: {
+            'Accept': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        }
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("WORKS");
+            console.log('Generated text:', data);
+            return data
 
+        })
+        .catch(error => {
+            console.error('Error generating text:', error);
+        });
+}
+
+
+// Function to render the list of exoplanets
 // Function to render the list of exoplanets
 const renderExoplanets = (data) => {
     const exoplanetList = document.getElementById("exoplanet-list");
     exoplanetList.innerHTML = ""; // Clear previous list items
 
-    // Iterate over the dictionary's keys
-    for (const planetKey in data) {
-        if (data.hasOwnProperty(planetKey)) { // Ensure it is a property of the object
-            const exoplanet = data[planetKey];
-            const planetName = exoplanet["pl_name"];
-            const planetMass = exoplanet["pl_bmasse"];
-            const systemDistance = exoplanet["sy_dist"];
-            const incl = exoplanet["pl_orbincl"];
+    // Sort the planets by distance (systemDistance)
+    const sortedData = Object.values(data).sort((a, b) => a.sy_dist - b.sy_dist);
 
-            console.log(exoplanet["pl_name"]);
-            // Prepare the values, defaulting to "N/A" if not present
-            const hostStar = exoplanet.hostStar || "N/A";
-            const lightYears = exoplanet.lightYears !== undefined ? exoplanet.lightYears : "N/A";
-            const earthRadius = exoplanet.earthRadius !== undefined ? exoplanet.earthRadius : "N/A";
+    // Iterate over the sorted list of exoplanets
+    sortedData.forEach((exoplanet, index) => {  // Add index to track each planet's key
+        const planetName = exoplanet["pl_name"];
+        const systemDistance = exoplanet["sy_dist"];
+        const planetKey = index;  // Use index as a simple key, or you can use another unique field from the data
 
-            // Create the list item with the specified format
-            const exoplanetItem = document.createElement("li");
-            exoplanetItem.className = "exoplanet-item";
-            exoplanetItem.innerHTML = `
-                <div class="exoplanet-header">
-                    <div class="exoplanet-name">${planetName || "Unknown"}</div>
-                </div>
-                <div class="exoplanet-details">
-                    
-                    <p>Distance: ${systemDistance} light-years</p>
-                  
-                </div>
-            `;
-            exoplanetItem.addEventListener('click', () => updatePlanetSprite(planetName));
-            // Append the list item to the list
-            exoplanetList.appendChild(exoplanetItem);
-        }
-    }
+        // Prepare the values, defaulting to "N/A" if not present
+        const lightYears = systemDistance !== undefined ? systemDistance : "N/A";
+
+        // Create the list item with the specified format
+        const exoplanetItem = document.createElement("li");
+        exoplanetItem.className = "exoplanet-item";
+        exoplanetItem.innerHTML = `
+            <div class="exoplanet-header">
+                <div class="exoplanet-name">${planetName || "Unknown"}</div>
+            </div>
+            <div class="exoplanet-details">
+                <p>Distance: ${lightYears} light-years</p>
+            </div>
+        `;
+
+        // Pass planetKey to the updatePlanetSprite function
+        exoplanetItem.addEventListener('click', () => updatePlanetSprite(planetName, planetKey));
+
+        // Append the list item to the list
+        exoplanetList.appendChild(exoplanetItem);
+    });
 };
 
 // Function to update planet sprite
-const updatePlanetSprite = (planetName) => {
+const updatePlanetSprite = (planetName , planetKey) => {
     const planet = document.getElementById("planet-container");
     const images = ["images/planet.png", "images/mercury.png", "images/venus.png"];
 
     planet.innerHTML = `
-        <div class="exoplanet-name">${planetName|| "Select a Planet"}</div>
+        <div class="exoplanet-name">${planetName || "Select a Planet"}</div>
         <button class="enter-experience-btn">Enter Experience</button>
         <img src="${images[Math.floor(Math.random() * images.length)]}" alt="${planetName}" class="exoplanet-image">
         <br/>
@@ -95,13 +120,19 @@ const updatePlanetSprite = (planetName) => {
     const button = planet.querySelector('.enter-experience-btn');
     button.addEventListener('click', () => {
         console.log('Entering experience for planet:', planetName);
-        window.location.href = `app.voyager-o.ca//${planetName}`;  // Corrected template literal usage
+        if (planetKey === '36') {
+  // If the key is 36, redirect to 37
+  window.location.href = `https://frontend-exosky-final-spaceapps.vercel.app/?key=37`;
+} else {
+  // Otherwise, continue with the original redirect
+  window.location.href = `https://frontend-exosky-final-spaceapps.vercel.app/?key=${planetKey * 5}`;
+}  // Corrected template literal usage
     });
 };
 
 // Function to filter exoplanets based on search input
 const filterExoplanets = (searchTerm) => {
-    const filteredData = dummyExoplanetData.filter(exoplanet => {
+    const filteredData = fetchExoplanetData2().filter(exoplanet => {
         return exoplanet.name.toLowerCase().includes(searchTerm.toLowerCase());
     });
     return filteredData;
